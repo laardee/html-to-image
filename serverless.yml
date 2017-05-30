@@ -1,0 +1,73 @@
+frameworkVersion: ">=1.2.0 <2.0.0"
+
+service: html-to-image # NOTE: update this with your service name
+
+provider:
+  name: aws
+  runtime: nodejs6.10
+  cfLogs: true
+  environment:
+    IMAGES_BUCKET: et-s3-events-12345
+    SERVERLESS_STAGE: ${opt:stage, self:provider.stage}
+    SERVERLESS_PROJECT: ${self:service}
+    SERVERLESS_REGION: ${opt:region, self:provider.region}
+    TABLE_NAME: ${self:provider.environment.SERVERLESS_PROJECT}-${self:provider.environment.SERVERLESS_STAGE}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+      - dynamodb:*
+      Resource: arn:aws:dynamodb:${self:provider.environment.SERVERLESS_REGION}:*:*
+    - Effect: Allow
+      Action:
+      - SNS:*
+      Resource: arn:aws:sns:${self:provider.environment.SERVERLESS_REGION}:*:*
+    - Effect: Allow
+      Action:
+      - S3:*
+      Resource: '*'
+#    - Effect: Allow
+#      Action:
+#      - KMS:Decrypt
+#      Resource: ${self:custom.kmsSecrets.keyArn}
+package:
+  include:
+    - bin/wkhtmltoimage
+  exclude:
+    - test/**
+    - .git/**
+    - templates
+  individually: true
+functions:
+  test-image:
+    handler: test-image/index.handler
+    timeout: 15
+
+plugins:
+  - serverless-mocha-plugin
+  - serverless-plugin-optimize
+  - serverless-offline
+  - serverless-kms-secrets
+
+custom:
+  serverless-mocha-plugin:
+    functionTemplate: templates/function.ejs
+#  kmsSecrets: ${file(kms-secrets.${opt:stage, self:provider.stage}.${opt:region, self:provider.region}.yml)}
+
+
+
+#resources:
+#  Resources:
+#    SessionsTable:
+#      Type: AWS::DynamoDB::Table
+#      DeletionPolicy: Delete
+#      Properties:
+#        AttributeDefinitions:
+#          - AttributeName: id
+#            AttributeType: S
+#        KeySchema:
+#          - AttributeName: id
+#            KeyType: HASH
+#        ProvisionedThroughput:
+#          ReadCapacityUnits: 1
+#          WriteCapacityUnits: 1
+#        TableName: ${self:provider.environment.TABLE_NAME}
