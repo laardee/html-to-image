@@ -4,5 +4,5 @@ const { convert } = require('../lib/convert');
 
 module.exports.handler =
   (event, context, callback) =>
-    convert({ Key: 'temp123.jpg' })
+    convert({ Key: 'dirname/file.jpg' })
       .then(callback);
